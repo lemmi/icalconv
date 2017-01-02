@@ -1,0 +1,8 @@
+{{- range . -}}
+\event
+{{- with .Categories}}*{{end}}
+{{- .Start.Format "{2006-01-02}"}}
+{{- if .HasEnd}}{{ .End.Format "{2006-01-02}"}}{{end}}
+{{- printf "{%s}" .Summary}}
+{{- with .Categories}}[color={{index . 0}}]{{end}}
+{{end}}`

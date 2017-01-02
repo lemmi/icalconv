@@ -1,0 +1,17 @@
+<table class="calendar">
+{{- range .SplitMonths}}
+	{{with .}}
+	{{- with index . 0}}<tbody><tr><td colspan="0">{{.Start.Month}}</td></tr></tbody>{{end}}
+	<tbody>
+		{{- range . }}
+		<tr{{with .Description}} title="{{.}}"{{end}}>
+			<td>{{ .Start.Weekday }}{{if .HasEnd}}<br>{{ .End.Weekday}}{{end}}</td>
+			<td>{{ .Start.Format "02.01.2006" }}{{if .HasEnd}}<br>{{ .End.Format "02.01.2006"}}{{end}}</td>
+			<td>{{ .Start.Format "15:04" }}{{if .HasEnd}}<br>{{ .End.Format "15:04"}}{{end}}</td>
+			<td>Uhr{{if .HasEnd}}<br>Uhr{{end}}</td>
+			<td>{{.Summary}}{{with .Location}}<br><em>{{.}}</em>{{end}}</td>
+		</tr>
+		{{- end}}
+	</tbody>
+{{- end}}{{end}}
+</table>
