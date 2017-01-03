@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/jordic/goics"
@@ -29,13 +28,10 @@ func debug(format string, a ...interface{}) {
 }
 
 var opts struct {
-	debug            bool
-	year             int64
-	month            int64
-	appendcategories string
-	removecategories string
-	limitcategories  string
-	chcat            string
+	debug bool
+	year  int64
+	month int64
+	chcat string
 }
 
 func main() {
@@ -43,7 +39,7 @@ func main() {
 
 	flag.BoolVar(&opts.debug, "d", false, "print debug info")
 	flag.Int64Var(&opts.year, "y", math.MinInt64, "limit output to year")
-	flag.Int64Var(&opts.year, "m", math.MinInt64, "limit output to month")
+	flag.Int64Var(&opts.month, "m", math.MinInt64, "limit output to month")
 	flag.StringVar(&opts.chcat, "c", "", "append (+), remove (-) or limit (=) categories \"+cat1,-cat2,=cat3...\"")
 	flag.Parse()
 
@@ -55,16 +51,18 @@ func main() {
 	}
 
 	if opts.year != math.MinInt64 {
+		debug("Filtering year %d\n", opts.year)
 		evs = evs.FilterTime(time.Time.Year, int(opts.year))
 	}
 	if opts.month != math.MinInt64 {
-		evs = evs.FilterTime(time.Time.Year, int(opts.year))
+		debug("Filtering month %d\n", opts.month)
+		evs = evs.FilterTime(func(t time.Time) int { return int(time.Time.Month(t)) }, int(opts.month))
 	}
 
 	evs = evs.Sort()
+	var limitCategories []string
 
-	for i, catopt := range strings.Split(opts.chcat, ",") {
-		catopt = strings.TrimSpace(catopt)
+	for i, catopt := range splitText(opts.chcat) {
 		if len(catopt) <= 1 {
 			debug("Ignoring empty category change #%d\n", i)
 			continue
@@ -79,13 +77,15 @@ func main() {
 		case '-':
 			optf = strSub
 		case '=':
-			optf = strCut
+			limitCategories = append(limitCategories, cat)
+			continue
 		default:
 			debug("Unknown operation %q\n", opt)
 		}
 
 		evs.OpCategories(optf, cat)
 	}
+	evs.OpCategories(strCut, limitCategories...)
 
 	if opts.debug {
 		PrinterFunc(printDebug).Print(os.Stderr, evs)

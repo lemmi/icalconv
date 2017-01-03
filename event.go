@@ -60,13 +60,12 @@ func (evs Events) SplitMonths() []Events {
 }
 
 // extra categories
-func (evs Events) OpCategories(f strSliceBoolOp, cats string) Events {
-	if cats == "" {
+func (evs Events) OpCategories(f strSliceBoolOp, cats ...string) Events {
+	if len(cats) == 0 {
 		return evs
 	}
-	c := splitText(cats)
 	for i := range evs {
-		evs[i].Categories = f(evs[i].Categories, c)
+		evs[i].Categories = f(evs[i].Categories, cats)
 	}
 	return evs
 }
