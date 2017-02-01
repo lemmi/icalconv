@@ -9,14 +9,82 @@ import (
 	"github.com/pkg/errors"
 )
 
+var days = [...]string{
+	"So",
+	"Mo",
+	"Di",
+	"Mi",
+	"Do",
+	"Fr",
+	"Sa",
+}
+
+var months = [...]string{
+	"",
+	"Januar",
+	"Februar",
+	"März",
+	"April",
+	"Mai",
+	"Juni",
+	"Juli",
+	"August",
+	"September",
+	"Oktober",
+	"November",
+	"Dezember",
+}
+
+func sameDay(t1, t2 time.Time) bool {
+	sy, sm, sd := t1.Date()
+	ey, em, ed := t2.Date()
+	return sy == ey && sm == em && sd == ed
+}
+
 type Event struct {
 	Start, End                         time.Time
 	Id, Description, Location, Summary string
 	Categories                         []string // sorted
 }
 
+func (e Event) HasStart() bool {
+	return !e.Start.IsZero()
+}
+
 func (e Event) HasEnd() bool {
 	return !e.End.IsZero()
+}
+
+func (e Event) HasStartClock() bool {
+	h, m, s := e.Start.Clock()
+	return !(h == 0 && m == 0 && s == 0)
+}
+
+func (e Event) HasEndClock() bool {
+	h, m, s := e.End.Clock()
+	return !(h == 0 && m == 0 && s == 0)
+}
+
+func (e Event) DeepCopy() Event {
+	var catCopy []string
+	if e.Categories != nil {
+		copy(catCopy, e.Categories)
+	}
+	e.Categories = catCopy
+	return e
+}
+
+// hacky german translations
+
+func (e Event) StartWeekday() string {
+	return days[e.Start.Weekday()]
+}
+func (e Event) EndWeekday() string {
+	// fix end date for midnight
+	return days[e.End.Weekday()]
+}
+func (e Event) StartMonth() string {
+	return months[e.Start.Month()]
 }
 
 type Events []Event
@@ -59,6 +127,60 @@ func (evs Events) SplitMonths() []Events {
 	return ret
 }
 
+// split events that span more than a day to make rendering easier
+func (evs Events) SplitLongEvents(prependStart, prependEnd string) Events {
+	var ret Events
+
+	for _, e := range evs.Sort() {
+		if !e.HasEnd() || sameDay(e.Start, e.End) {
+			ret = append(ret, e)
+		} else {
+			splitStart := e.DeepCopy()
+			splitEnd := e.DeepCopy()
+
+			splitStart.End = time.Time{}
+			splitEnd.End = time.Time{}
+
+			splitEnd.Start = e.End
+
+			splitStart.Summary = prependStart + splitStart.Summary
+			splitEnd.Summary = prependEnd + splitEnd.Summary
+
+			ret = append(ret, splitStart, splitEnd)
+		}
+	}
+
+	return ret.Sort()
+}
+
+func (evs Events) Categories() []string {
+	ss := make(stringSet)
+	for _, e := range evs {
+		ss.AddSlice(e.Categories)
+	}
+	return ss.Slice()
+}
+
+func (evs Events) SplitDays() []Events {
+	var ret []Events
+
+	var bucket Events
+	for _, e := range evs.Sort() {
+		if len(bucket) == 0 || sameDay(bucket[0].Start, e.Start) {
+			bucket = append(bucket, e)
+		} else {
+			ret = append(ret, bucket)
+			bucket = Events{e}
+		}
+	}
+
+	if len(bucket) > 0 {
+		ret = append(ret, bucket)
+	}
+
+	return ret
+}
+
 // extra categories
 func (evs Events) OpCategories(f strSliceBoolOp, cats ...string) Events {
 	if len(cats) == 0 {
@@ -94,8 +216,10 @@ func getProp(props map[string]*goics.IcsNode, key string) *goics.IcsNode {
 	return &goics.IcsNode{}
 }
 
+var replacer = strings.NewReplacer(`\,`, `,`, `\\`, `\`)
+
 func getVal(props map[string]*goics.IcsNode, key string) string {
-	return getProp(props, key).Val
+	return replacer.Replace(getProp(props, key).Val)
 }
 
 // parse
@@ -119,12 +243,15 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		}
 		if d.Start.Equal(d.End) {
 			d.End = time.Time{}
+		} else if !d.HasEndClock() {
+			d.End = d.End.AddDate(0, 0, -1) // End times are exclusive, fixes midnight problem
 		}
 		d.Categories = splitText(getVal(props, "CATEGORIES"))
 		sort.StringSlice(d.Categories).Sort()
 		d.Id = getVal(props, "UID")
 		d.Summary = getVal(props, "SUMMARY")
 		d.Description = getVal(props, "DESCRIPTION")
+		d.Location = getVal(props, "LOCATION")
 		*e = append(*e, d)
 	}
 	return nil

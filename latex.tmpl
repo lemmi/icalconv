@@ -1,7 +1,15 @@
-{{- range . -}}
-\event
-{{- with .Categories}}*{{end}}
-{{- .Start.Format "{2006-01-02}"}}
-{{- printf "{%s}" .Summary}}
+{{- with .SplitLongEvents "Beginn: " "Ende: "}}
+{{- range .SplitDays -}}
+\event{{with .Categories}}*{{end}}
+{{- with index . 0}}{{if .HasStart}}{{ .Start.Format "{2006-01-02}"}}{{else}}{{.End.Format "{2006-01-02}"}}{{end}}{{end}}
+{{- "{"}}
+{{- range $i, $e := .}}
+	{{- if ne $i 0}}\\{{end}}
+	{{- if $e.HasStartClock}}{{$e.Start.Format "15:04 "}}{{end}}
+	{{- if not $e.HasStart}}{{if $e.HasEnd}}Ende: {{end}}{{end}}
+	{{- $e.Summary}}
+{{- end}}
+{{- "}"}}
 {{- with .Categories}}[color={{index . 0}}]{{end}}
+{{end -}}
 {{end -}}
