@@ -7,6 +7,7 @@ import (
 
 	"github.com/jordic/goics"
 	"github.com/pkg/errors"
+	"github.com/teambition/rrule-go"
 )
 
 var days = [...]string{
@@ -45,6 +46,7 @@ type Event struct {
 	Start, End                         time.Time
 	Id, Description, Location, Summary string
 	Categories                         []string // sorted
+	ruleset                            *rrule.Set
 }
 
 func (e Event) HasStart() bool {
@@ -68,10 +70,33 @@ func (e Event) HasEndClock() bool {
 func (e Event) DeepCopy() Event {
 	var catCopy []string
 	if e.Categories != nil {
-		copy(catCopy, e.Categories)
+		catCopy = append(catCopy, e.Categories...)
 	}
 	e.Categories = catCopy
 	return e
+}
+
+func (e Event) ExpandBetween(start time.Time, end time.Time) Events {
+	if e.ruleset == nil {
+		if !e.Start.Before(start) && !e.Start.After(end) {
+			return Events{e}
+		} else {
+			return Events{}
+		}
+	}
+
+	var ret Events
+	d := e.End.Sub(e.Start)
+	for _, t := range e.ruleset.Between(start, end, true) {
+		next := e.DeepCopy()
+		next.ruleset = nil
+		next.Start = t
+		if next.HasEnd() {
+			next.End = next.Start.Add(d)
+		}
+		ret = append(ret, next)
+	}
+	return ret
 }
 
 // hacky german translations
@@ -105,6 +130,14 @@ func (evs Events) Sort() Events {
 		ByEnd,
 		ById,
 	)
+}
+
+func (evs Events) ExpandBetween(start time.Time, end time.Time) Events {
+	var ret Events
+	for _, e := range evs {
+		ret = append(ret, e.ExpandBetween(start, end)...)
+	}
+	return ret
 }
 
 // filters
@@ -252,9 +285,59 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		d.Summary = getVal(props, "SUMMARY")
 		d.Description = getVal(props, "DESCRIPTION")
 		d.Location = getVal(props, "LOCATION")
+		d, err = applyRecurrence(d, el)
+		if err != nil {
+			return err
+		}
 		*e = append(*e, d)
 	}
 	return nil
+}
+
+// recurrence
+
+func applyRecurrence(e Event, el *goics.Event) (Event, error) {
+	var ruleset rrule.Set
+	var needruleset bool
+
+	if rule, ok := el.Data["RRULE"]; ok {
+		o, err := rrule.StrToROption(rule.Val)
+		if err != nil {
+			return e, errors.Wrap(err, "Error parsing RRULE")
+		}
+		o.Dtstart = e.Start
+		r, err := rrule.NewRRule(*o)
+		if err != nil {
+			return e, errors.Wrap(err, "Error creating RRULE")
+		}
+		ruleset.RRule(r)
+		needruleset = true
+	}
+
+	if rule, ok := el.Data["RDATE"]; ok {
+		rdate, err := rule.DateDecode()
+		rdate = rdate.In(e.Start.Location())
+		if err != nil {
+			return e, errors.Wrap(err, "Error parsing RDATE")
+		}
+		ruleset.RDate(rdate)
+		needruleset = true
+	}
+
+	for _, rule := range el.List["EXDATE"] {
+		exdate, err := rule.DateDecode()
+		exdate = exdate.In(e.Start.Location())
+		if err != nil {
+			return e, errors.Wrap(err, "Error parsing EXDATE")
+		}
+		ruleset.ExDate(exdate)
+	}
+
+	if needruleset {
+		e.ruleset = &ruleset
+	}
+
+	return e, nil
 }
 
 // sorter

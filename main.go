@@ -29,8 +29,8 @@ func debug(format string, a ...interface{}) {
 
 var opts struct {
 	debug bool
-	year  int64
-	month int64
+	year  int
+	month int
 	chcat string
 }
 
@@ -38,8 +38,8 @@ func main() {
 	var err error
 
 	flag.BoolVar(&opts.debug, "d", false, "print debug info")
-	flag.Int64Var(&opts.year, "y", math.MinInt64, "limit output to year")
-	flag.Int64Var(&opts.month, "m", math.MinInt64, "limit output to month")
+	flag.IntVar(&opts.year, "y", math.MinInt64, "limit output to year")
+	flag.IntVar(&opts.month, "m", math.MinInt64, "limit output to month")
 	flag.StringVar(&opts.chcat, "c", "", "append (+), remove (-) or limit (=) categories \"+cat1,-cat2,=cat3...\"")
 	flag.Parse()
 
@@ -47,16 +47,18 @@ func main() {
 	var evs Events
 	err = d.Decode(&evs)
 	if err != nil {
-		fmt.Printf("%#v\n", err)
+		log.Fatalf("%#v\n", err)
+
 	}
 
 	if opts.year != math.MinInt64 {
 		debug("Filtering year %d\n", opts.year)
-		evs = evs.FilterTime(time.Time.Year, int(opts.year))
+		start := time.Date(opts.year, time.January, 1, 0, 0, 0, 0, time.Local)
+		evs = evs.ExpandBetween(start, start.AddDate(1, 0, 0))
 	}
 	if opts.month != math.MinInt64 {
 		debug("Filtering month %d\n", opts.month)
-		evs = evs.FilterTime(func(t time.Time) int { return int(time.Time.Month(t)) }, int(opts.month))
+		evs = evs.FilterTime(func(t time.Time) int { return int(time.Time.Month(t)) }, opts.month)
 	}
 
 	evs = evs.Sort()
