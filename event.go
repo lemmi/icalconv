@@ -289,6 +289,10 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		if err != nil {
 			return err
 		}
+		if len(strings.TrimSpace(d.Summary)) == 0 {
+			debug("Skipping invalid Event %s\n", d)
+			continue
+		}
 		*e = append(*e, d)
 	}
 	return nil
@@ -315,7 +319,7 @@ func applyRecurrence(e Event, el *goics.Event) (Event, error) {
 	}
 
 	if rule, ok := el.Data["RDATE"]; ok {
-		rdate, err := rule.DateDecode()
+		rdate, err := trimRightZ(rule).DateDecode()
 		rdate = rdate.In(e.Start.Location())
 		if err != nil {
 			return e, errors.Wrap(err, "Error parsing RDATE")
