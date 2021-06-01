@@ -151,8 +151,8 @@ func (evs Events) FilterTime(f func(time.Time) int, val int) Events {
 	return ret
 }
 
-func (evs Events) SplitMonths() []Events {
-	ret := make([]Events, 12)
+func (evs Events) SplitMonths() map[int]Events {
+	ret := make(map[int]Events)
 	for _, ev := range evs {
 		m := int(ev.Start.Month()) - 1
 		ret[m] = append(ret[m], ev)

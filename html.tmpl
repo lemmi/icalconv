@@ -1,6 +1,5 @@
 <table class="calendar">
 {{- range .SplitMonths}}
-	{{with .}}
 	{{- with index . 0}}<tbody><tr><td colspan="0">{{.Start.Month}}</td></tr></tbody>{{end}}
 	<tbody>
 		{{- range . }}
@@ -13,5 +12,5 @@
 		</tr>
 		{{- end}}
 	</tbody>
-{{- end}}{{end}}
+{{- end}}
 </table>
