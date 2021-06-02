@@ -328,7 +328,11 @@ func applyRecurrence(e Event, el *goics.Event) (Event, error) {
 		needruleset = true
 	}
 
-	for _, rule := range el.List["EXDATE"] {
+	exdates := el.List["EXDATE"]
+	if dataexdate := el.Data["EXDATE"]; dataexdate != nil {
+		exdates = append(exdates, dataexdate)
+	}
+	for _, rule := range exdates {
 		exdate, err := rule.DateDecode()
 		exdate = exdate.In(e.Start.Location())
 		if err != nil {
