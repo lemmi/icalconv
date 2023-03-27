@@ -3,13 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	"html/template"
+	htmltemplate "html/template"
 	"io"
 	"log"
 	"math"
 	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/jordic/goics"
 	"github.com/pkg/errors"
 )
@@ -94,7 +98,16 @@ func main() {
 	}
 
 	for _, tmpl := range flag.Args() {
-		t, err := template.ParseFiles(tmpl)
+		var t interface {
+			Execute(io.Writer, any) error
+		}
+		var err error
+
+		if strings.HasPrefix(strings.ToLower(filepath.Ext(tmpl)), ".html") {
+			t, err = htmltemplate.New(filepath.Base(tmpl)).Funcs(sprig.FuncMap()).ParseFiles(tmpl)
+		} else {
+			t, err = template.New(filepath.Base(tmpl)).Funcs(sprig.FuncMap()).ParseFiles(tmpl)
+		}
 		if err != nil {
 			log.Fatalf("%+v", errors.Wrapf(err, "Error parsing %q", tmpl))
 		}
