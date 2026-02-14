@@ -32,10 +32,11 @@ func debug(format string, a ...any) {
 }
 
 var opts struct {
-	debug bool
-	year  int
-	month int
-	chcat string
+	debug    bool
+	year     int
+	month    int
+	chcat    string
+	template string
 }
 
 func main() {
@@ -45,14 +46,49 @@ func main() {
 	flag.IntVar(&opts.year, "y", math.MinInt64, "limit output to year")
 	flag.IntVar(&opts.month, "m", math.MinInt64, "limit output to month")
 	flag.StringVar(&opts.chcat, "c", "", "append (+), remove (-) or limit (=) categories \"+cat1,-cat2,=cat3...\"")
+	flag.StringVar(&opts.template, "t", "", "template file to render output")
 	flag.Parse()
 
-	d := goics.NewDecoder(os.Stdin)
-	var evs Events
-	err = d.Decode(&evs)
-	if err != nil {
-		log.Fatalf("%#v\n", err)
+	args := flag.Args()
 
+	if opts.template == "" {
+		log.Fatal("No template specified. Use -t templatefile")
+	}
+
+	var evs Events
+
+	if len(args) == 0 {
+		// Fallback to stdin as before
+		d := goics.NewDecoder(os.Stdin)
+		if err = d.Decode(&evs); err != nil {
+			log.Fatalf("%#v\n", err)
+		}
+	} else {
+		var fileSlices []Events
+		i := 0
+		// Process files with optional per‑file category filters.
+		for i < len(args) {
+			filePath := args[i]
+			i++
+
+			var filter string
+			if i < len(args) && (strings.HasPrefix(args[i], "+") ||
+				strings.HasPrefix(args[i], "-") ||
+				strings.HasPrefix(args[i], "=")) {
+				filter = args[i]
+				i++
+			}
+
+			fevs, loadErr := loadEventsFromFile(filePath)
+			if loadErr != nil {
+				log.Fatalf("Failed to load %s: %v", filePath, loadErr)
+			}
+			if filter != "" {
+				fevs = applyCategoryFilters(fevs, filter)
+			}
+			fileSlices = append(fileSlices, fevs)
+		}
+		evs = mergeEventSlices(fileSlices...)
 	}
 
 	if opts.year != math.MinInt64 {
@@ -97,23 +133,20 @@ func main() {
 		PrinterFunc(printDebug).Print(os.Stderr, evs)
 	}
 
-	for _, tmpl := range flag.Args() {
-		var t interface {
-			Execute(io.Writer, any) error
-		}
-		var err error
+	var t interface {
+		Execute(io.Writer, any) error
+	}
 
-		if strings.HasPrefix(strings.ToLower(filepath.Ext(tmpl)), ".html") {
-			t, err = htmltemplate.New(filepath.Base(tmpl)).Funcs(sprig.FuncMap()).ParseFiles(tmpl)
-		} else {
-			t, err = template.New(filepath.Base(tmpl)).Funcs(sprig.FuncMap()).ParseFiles(tmpl)
-		}
-		if err != nil {
-			log.Fatalf("%+v", errors.Wrapf(err, "Error parsing %q", tmpl))
-		}
-		err = t.Execute(os.Stdout, evs)
-		if err != nil {
-			log.Fatalf("%+v", errors.Wrapf(err, "Error executing %q", tmpl))
-		}
+	if strings.HasPrefix(strings.ToLower(filepath.Ext(opts.template)), ".html") {
+		t, err = htmltemplate.New(filepath.Base(opts.template)).Funcs(sprig.FuncMap()).ParseFiles(opts.template)
+	} else {
+		t, err = template.New(filepath.Base(opts.template)).Funcs(sprig.FuncMap()).ParseFiles(opts.template)
+	}
+	if err != nil {
+		log.Fatalf("%+v", errors.Wrapf(err, "Error parsing %q", opts.template))
+	}
+	err = t.Execute(os.Stdout, evs)
+	if err != nil {
+		log.Fatalf("%+v", errors.Wrapf(err, "Error executing %q", opts.template))
 	}
 }
