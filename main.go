@@ -25,7 +25,7 @@ func printDebug(out io.Writer, evs Events) error {
 	return nil
 }
 
-func debug(format string, a ...interface{}) {
+func debug(format string, a ...any) {
 	if opts.debug {
 		fmt.Fprintf(os.Stderr, format, a...)
 	}
