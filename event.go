@@ -237,11 +237,6 @@ func splitText(s string) []string {
 	return ret
 }
 
-func trimRightZ(node *goics.IcsNode) *goics.IcsNode {
-	node.Val = strings.TrimRight(node.Val, "Z")
-	return node
-}
-
 func getProp(props map[string]*goics.IcsNode, key string) *goics.IcsNode {
 	if prop := props[key]; prop != nil {
 		return prop
@@ -266,11 +261,11 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		if props == nil {
 			return errors.Errorf("Event has no properties: %+v", el)
 		}
-		d.Start, err = trimRightZ(getProp(props, "DTSTART")).DateDecode()
+		d.Start, err = getProp(props, "DTSTART").DateDecode()
 		if err != nil {
 			return errors.Wrap(err, "failed to get start date")
 		}
-		d.End, err = trimRightZ(getProp(props, "DTEND")).DateDecode()
+		d.End, err = getProp(props, "DTEND").DateDecode()
 		if err != nil {
 			return errors.Wrap(err, "failed to get end date")
 		}
@@ -319,7 +314,7 @@ func applyRecurrence(e Event, el *goics.Event) (Event, error) {
 	}
 
 	if rule, ok := el.Data["RDATE"]; ok {
-		rdate, err := trimRightZ(rule).DateDecode()
+		rdate, err := rule.DateDecode()
 		rdate = rdate.In(e.Start.Location())
 		if err != nil {
 			return e, errors.Wrap(err, "Error parsing RDATE")
