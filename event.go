@@ -285,7 +285,7 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 			return err
 		}
 		if len(strings.TrimSpace(d.Summary)) == 0 {
-			debug("Skipping invalid Event %s\n", d)
+			debug("Skipping invalid Event %v+\n", d)
 			continue
 		}
 		*e = append(*e, d)
