@@ -398,7 +398,7 @@ func ByDescription(e1, e2 *Event) bool {
 	return e1.Description < e2.Description
 }
 func ByLocation(e1, e2 *Event) bool {
-	return e1.Description < e2.Description
+	return e1.Location < e2.Location
 }
 func ByCategories(e1, e2 *Event) bool {
 	cats1 := e1.Categories
