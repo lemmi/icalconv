@@ -261,11 +261,11 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		if props == nil {
 			return errors.Errorf("Event has no properties: %+v", el)
 		}
-		d.Start, err = getProp(props, "DTSTART").DateDecode()
+		d.Start, err = DateDecode(getProp(props, "DTSTART"))
 		if err != nil {
 			return errors.Wrap(err, "failed to get start date")
 		}
-		d.End, err = getProp(props, "DTEND").DateDecode()
+		d.End, err = DateDecode(getProp(props, "DTEND"))
 		if err != nil {
 			return errors.Wrap(err, "failed to get end date")
 		}
@@ -314,7 +314,7 @@ func applyRecurrence(e Event, el *goics.Event) (Event, error) {
 	}
 
 	if rule, ok := el.Data["RDATE"]; ok {
-		rdate, err := rule.DateDecode()
+		rdate, err := DateDecode(rule)
 		rdate = rdate.In(e.Start.Location())
 		if err != nil {
 			return e, errors.Wrap(err, "Error parsing RDATE")
@@ -328,7 +328,7 @@ func applyRecurrence(e Event, el *goics.Event) (Event, error) {
 		exdates = append(exdates, dataexdate)
 	}
 	for _, rule := range exdates {
-		exdate, err := rule.DateDecode()
+		exdate, err := DateDecode(rule)
 		exdate = exdate.In(e.Start.Location())
 		if err != nil {
 			return e, errors.Wrap(err, "Error parsing EXDATE")
@@ -407,4 +407,55 @@ func ByCategories(e1, e2 *Event) bool {
 		}
 	}
 	return len(cats1) < len(cats2)
+}
+
+// DateDecode Decodes a date in the distincts formats
+func DateDecode(n *goics.IcsNode) (time.Time, error) {
+	// DTEND;VALUE=DATE:20140406
+	if val, ok := n.Params["VALUE"]; ok {
+		switch val {
+		case "DATE":
+			t, err := time.Parse("20060102", n.Val)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return t, nil
+		case "DATE-TIME":
+			t, err := time.Parse("20060102T150405", n.Val)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return t, nil
+		}
+	}
+	// DTSTART;TZID=Europe/Paris:20140116T120000
+	if val, ok := n.Params["TZID"]; ok {
+		loc, err := time.LoadLocation(val)
+		if err != nil {
+			return time.Time{}, err
+		}
+		t, err := time.ParseInLocation("20060102T150405", n.Val, loc)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return t, nil
+	}
+	// Floating time (local time without TZID or Z suffix)
+	if len(n.Val) == 15 { // e.g., 20060102T150405
+		t, err := time.ParseInLocation("20060102T150405", n.Val, time.Local)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return t, nil
+	}
+	//DTSTART:19980119T070000Z utf datetime
+	if len(n.Val) == 16 {
+		t, err := time.Parse("20060102T150405Z", n.Val)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return t, nil
+	}
+
+	return time.Time{}, nil
 }
