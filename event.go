@@ -43,10 +43,10 @@ func sameDay(t1, t2 time.Time) bool {
 }
 
 type Event struct {
-	Start, End                         time.Time
-	Id, Description, Location, Summary string
-	Categories                         []string // sorted
-	ruleset                            *rrule.Set
+	Start, End                          time.Time
+	UID, Description, Location, Summary string
+	Categories                          []string // sorted
+	ruleset                             *rrule.Set
 }
 
 func (e Event) HasStart() bool {
@@ -276,7 +276,7 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		}
 		d.Categories = splitText(getVal(props, "CATEGORIES"))
 		sort.StringSlice(d.Categories).Sort()
-		d.Id = getVal(props, "UID")
+		d.UID = getVal(props, "UID")
 		d.Summary = getVal(props, "SUMMARY")
 		d.Description = getVal(props, "DESCRIPTION")
 		d.Location = getVal(props, "LOCATION")
@@ -384,7 +384,7 @@ func ByEnd(e1, e2 *Event) bool {
 	return e1.End.Before(e2.End)
 }
 func ById(e1, e2 *Event) bool {
-	return e1.Id < e2.Id
+	return e1.UID < e2.UID
 }
 func BySummary(e1, e2 *Event) bool {
 	return e1.Summary < e2.Summary
