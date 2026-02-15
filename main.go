@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -90,6 +91,14 @@ func main() {
 		}
 		evs = mergeEventSlices(fileSlices...)
 	}
+
+	evs = slices.CompactFunc(evs.SortBy(ById), func(e1, e2 Event) bool {
+		// only deduplicate events with non-empty UID
+		if e1.UID == e2.UID {
+			return e1.UID != ""
+		}
+		return false
+	})
 
 	if opts.year != math.MinInt64 {
 		debug("Filtering year %d\n", opts.year)
