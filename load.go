@@ -1,4 +1,4 @@
-package main
+package icalconv
 
 import (
 	"io"
@@ -9,17 +9,17 @@ import (
 
 // loadEventsFromFile opens the file at the given path and decodes the iCalendar data.
 // It is a thin wrapper around loadEventsFromReader.
-func loadEventsFromFile(path string) (Events, error) {
+func LoadEventsFromFile(path string) (Events, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return loadEventsFromReader(f)
+	return LoadEventsFromReader(f)
 }
 
 // loadEventsFromReader decodes iCalendar data from any io.Reader and returns the events.
-func loadEventsFromReader(r io.Reader) (Events, error) {
+func LoadEventsFromReader(r io.Reader) (Events, error) {
 	var evs Events
 	return evs, goics.NewDecoder(r).Decode(&evs)
 }
@@ -32,7 +32,7 @@ func loadEventsFromReader(r io.Reader) (Events, error) {
 //	=cat   – limit the final categories to the intersection with `cat` (cut)
 //
 // The function mirrors the logic that previously lived in `main.go`.
-func applyCategoryFilters(evs Events, filter string) Events {
+func ApplyCategoryFilters(evs Events, filter string) Events {
 	var limitCategories []string
 
 	for _, catopt := range splitText(filter) {
@@ -43,23 +43,23 @@ func applyCategoryFilters(evs Events, filter string) Events {
 
 		switch opt {
 		case '+':
-			evs = evs.OpCategories(strUnion, cat)
+			evs = evs.OpCategories(StrUnion, cat)
 		case '-':
-			evs = evs.OpCategories(strSub, cat)
+			evs = evs.OpCategories(StrSub, cat)
 		case '=':
 			limitCategories = append(limitCategories, cat)
 		}
 	}
 	// Apply the final cut operation if any =‑filters were supplied.
 	if len(limitCategories) > 0 {
-		evs = evs.OpCategories(strCut, limitCategories...)
+		evs = evs.OpCategories(StrCut, limitCategories...)
 	}
 	return evs
 }
 
 // mergeEventSlices concatenates a variadic list of Events slices into a single Events slice.
 // It does not perform any deduplication; callers can sort or deduplicate afterwards if needed.
-func mergeEventSlices(slices ...Events) Events {
+func MergeEventSlices(slices ...Events) Events {
 	var merged Events
 	for _, s := range slices {
 		merged = append(merged, s...)

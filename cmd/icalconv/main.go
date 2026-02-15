@@ -16,10 +16,11 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/jordic/goics"
+	"github.com/lemmi/icalconv"
 	"github.com/pkg/errors"
 )
 
-func printDebug(out io.Writer, evs Events) error {
+func printDebug(out io.Writer, evs icalconv.Events) error {
 	for _, ev := range evs {
 		fmt.Fprintf(out, "%+v\n", ev)
 	}
@@ -56,7 +57,7 @@ func main() {
 		log.Fatal("No template specified. Use -t templatefile")
 	}
 
-	var evs Events
+	var evs icalconv.Events
 
 	if len(args) == 0 {
 		// Fallback to stdin as before
@@ -65,7 +66,7 @@ func main() {
 			log.Fatalf("%#v\n", err)
 		}
 	} else {
-		var fileSlices []Events
+		var fileSlices []icalconv.Events
 		i := 0
 		// Process files with optional per‑file category filters.
 		for i < len(args) {
@@ -80,19 +81,19 @@ func main() {
 				i++
 			}
 
-			fevs, loadErr := loadEventsFromFile(filePath)
+			fevs, loadErr := icalconv.LoadEventsFromFile(filePath)
 			if loadErr != nil {
 				log.Fatalf("Failed to load %s: %v", filePath, loadErr)
 			}
 			if filter != "" {
-				fevs = applyCategoryFilters(fevs, filter)
+				fevs = icalconv.ApplyCategoryFilters(fevs, filter)
 			}
 			fileSlices = append(fileSlices, fevs)
 		}
-		evs = mergeEventSlices(fileSlices...)
+		evs = icalconv.MergeEventSlices(fileSlices...)
 	}
 
-	evs = slices.CompactFunc(evs.SortBy(ById), func(e1, e2 Event) bool {
+	evs = slices.CompactFunc(evs.SortBy(icalconv.ById), func(e1, e2 icalconv.Event) bool {
 		// only deduplicate events with non-empty UID
 		if e1.UID == e2.UID {
 			return e1.UID != ""
@@ -111,35 +112,10 @@ func main() {
 	}
 
 	evs = evs.Sort()
-	var limitCategories []string
-
-	for i, catopt := range splitText(opts.chcat) {
-		if len(catopt) <= 1 {
-			debug("Ignoring empty category change #%d\n", i)
-			continue
-		}
-
-		opt, cat := catopt[0], catopt[1:]
-		var optf strSliceBoolOp
-
-		switch opt {
-		case '+':
-			optf = strUnion
-		case '-':
-			optf = strSub
-		case '=':
-			limitCategories = append(limitCategories, cat)
-			continue
-		default:
-			debug("Unknown operation %q\n", opt)
-		}
-
-		evs.OpCategories(optf, cat)
-	}
-	evs.OpCategories(strCut, limitCategories...)
+	evs = icalconv.ApplyCategoryFilters(evs, opts.chcat)
 
 	if opts.debug {
-		PrinterFunc(printDebug).Print(os.Stderr, evs)
+		icalconv.PrinterFunc(printDebug).Print(os.Stderr, evs)
 	}
 
 	var t interface {

@@ -1,4 +1,4 @@
-package main
+package icalconv
 
 import (
 	"io"
@@ -33,7 +33,7 @@ func icsReader(categories []string) io.Reader {
 // Test loading events from an io.Reader.
 func TestLoadEventsFromReader(t *testing.T) {
 	r := icsReader([]string{"catA", "catB"})
-	evs, err := loadEventsFromReader(r)
+	evs, err := LoadEventsFromReader(r)
 	if err != nil {
 		t.Fatalf("loadEventsFromReader failed: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestLoadEventsFromReader(t *testing.T) {
 func TestApplyCategoryFilters(t *testing.T) {
 	evs := Events{{Categories: []string{"cat1", "cat2"}}}
 	// +cat3, -cat1, =cat2  => result should be ["cat2"] (limit cuts to cat2)
-	filtered := applyCategoryFilters(evs, "+cat3,-cat1,=cat2")
+	filtered := ApplyCategoryFilters(evs, "+cat3,-cat1,=cat2")
 	if len(filtered) != 1 {
 		t.Fatalf("expected 1 event after filtering")
 	}
@@ -63,7 +63,7 @@ func TestApplyCategoryFilters(t *testing.T) {
 func TestMergeEventSlices(t *testing.T) {
 	ev1 := Events{{Summary: "A"}}
 	ev2 := Events{{Summary: "B"}, {Summary: "C"}}
-	merged := mergeEventSlices(ev1, ev2)
+	merged := MergeEventSlices(ev1, ev2)
 	if len(merged) != 3 {
 		t.Fatalf("expected 3 events after merge, got %d", len(merged))
 	}
@@ -82,20 +82,20 @@ func TestFullWorkflow(t *testing.T) {
 	// Second file: catY, catZ
 	r2 := icsReader([]string{"catY", "catZ"})
 
-	evs1, err := loadEventsFromReader(r1)
+	evs1, err := LoadEventsFromReader(r1)
 	if err != nil {
 		t.Fatalf("load first reader: %v", err)
 	}
-	evs2, err := loadEventsFromReader(r2)
+	evs2, err := LoadEventsFromReader(r2)
 	if err != nil {
 		t.Fatalf("load second reader: %v", err)
 	}
 
 	// Apply per‑file filters.
-	evs1 = applyCategoryFilters(evs1, "=catX") // keep only catX
-	evs2 = applyCategoryFilters(evs2, "+catA") // add catA
+	evs1 = ApplyCategoryFilters(evs1, "=catX") // keep only catX
+	evs2 = ApplyCategoryFilters(evs2, "+catA") // add catA
 
-	merged := mergeEventSlices(evs1, evs2)
+	merged := MergeEventSlices(evs1, evs2)
 
 	if len(merged) != 2 {
 		t.Fatalf("expected 2 merged events, got %d", len(merged))
@@ -111,7 +111,7 @@ func TestFullWorkflow(t *testing.T) {
 // Verify that the start time is parsed correctly by goics.
 func TestEventTimeParsing(t *testing.T) {
 	r := icsReader(nil)
-	evs, err := loadEventsFromReader(r)
+	evs, err := LoadEventsFromReader(r)
 	if err != nil {
 		t.Fatalf("loadEventsFromReader failed: %v", err)
 	}

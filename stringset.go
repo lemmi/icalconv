@@ -1,6 +1,8 @@
-package main
+package icalconv
 
-import "sort"
+import (
+	"sort"
+)
 
 type stringSet map[string]struct{}
 
@@ -29,19 +31,15 @@ func (set stringSet) Slice() []string {
 
 // bool operations
 
-type strSliceBoolOp func([]string, []string) []string
+type StrSliceBoolOp func([]string, []string) []string
 
-func strUnion(s1, s2 []string) []string {
+func StrUnion(s1, s2 []string) []string {
 	set := make(stringSet, len(s1)+len(s2))
-	for _, s := range s1 {
-		set.Add(s)
-	}
-	for _, s := range s2 {
-		set.Add(s)
-	}
+	set = set.AddSlice(s1)
+	set = set.AddSlice(s2)
 	return set.Slice()
 }
-func strSub(s1, s2 []string) []string {
+func StrSub(s1, s2 []string) []string {
 	set := make(stringSet, len(s1)+len(s2))
 	for _, s := range s1 {
 		set.Add(s)
@@ -51,7 +49,7 @@ func strSub(s1, s2 []string) []string {
 	}
 	return set.Slice()
 }
-func strCut(s1, s2 []string) []string {
+func StrCut(s1, s2 []string) []string {
 	set2 := stringSet{}.AddSlice(s2)
 	ret := stringSet{}
 	for _, s := range s1 {

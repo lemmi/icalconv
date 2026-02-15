@@ -1,6 +1,7 @@
-package main
+package icalconv
 
 import (
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -215,7 +216,7 @@ func (evs Events) SplitDays() []Events {
 }
 
 // extra categories
-func (evs Events) OpCategories(f strSliceBoolOp, cats ...string) Events {
+func (evs Events) OpCategories(f StrSliceBoolOp, cats ...string) Events {
 	if len(cats) == 0 {
 		return evs
 	}
@@ -285,7 +286,7 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 			return err
 		}
 		if len(strings.TrimSpace(d.Summary)) == 0 {
-			debug("Skipping invalid Event %v+\n", d)
+			log.Printf("Skipping invalid Event %v+\n", d)
 			continue
 		}
 		*e = append(*e, d)
