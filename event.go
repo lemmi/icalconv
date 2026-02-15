@@ -1,7 +1,9 @@
 package icalconv
 
 import (
+	"iter"
 	"log"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -228,14 +230,16 @@ func (evs Events) OpCategories(f StrSliceBoolOp, cats ...string) Events {
 
 // utils parsing
 
-func splitText(s string) []string {
-	var ret []string
-	for _, t := range strings.Split(s, ",") {
-		if token := strings.TrimSpace(t); len(token) > 0 {
-			ret = append(ret, token)
+func splitText(s string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for t := range strings.SplitSeq(s, ",") {
+			if token := strings.TrimSpace(t); len(token) > 0 {
+				if !yield(token) {
+					return
+				}
+			}
 		}
 	}
-	return ret
 }
 
 func getProp(props map[string]*goics.IcsNode, key string) *goics.IcsNode {
@@ -275,7 +279,7 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		} else if !d.HasEndClock() {
 			d.End = d.End.AddDate(0, 0, -1) // End times are exclusive, fixes midnight problem
 		}
-		d.Categories = splitText(getVal(props, "CATEGORIES"))
+		d.Categories = slices.Collect(splitText(getVal(props, "CATEGORIES")))
 		sort.StringSlice(d.Categories).Sort()
 		d.UID = getVal(props, "UID")
 		d.Summary = getVal(props, "SUMMARY")

@@ -66,31 +66,19 @@ func main() {
 			log.Fatalf("%#v\n", err)
 		}
 	} else {
-		var fileSlices []icalconv.Events
-		i := 0
-		// Process files with optional per‑file category filters.
-		for i < len(args) {
-			filePath := args[i]
-			i++
-
-			var filter string
-			if i < len(args) && (strings.HasPrefix(args[i], "+") ||
-				strings.HasPrefix(args[i], "-") ||
-				strings.HasPrefix(args[i], "=")) {
-				filter = args[i]
-				i++
+		for file_filter := range slices.Chunk(args, 2) {
+			if len(file_filter) != 2 {
+				continue
 			}
+			filePath, filter := file_filter[0], file_filter[1]
 
 			fevs, loadErr := icalconv.LoadEventsFromFile(filePath)
 			if loadErr != nil {
 				log.Fatalf("Failed to load %s: %v", filePath, loadErr)
 			}
-			if filter != "" {
-				fevs = icalconv.ApplyCategoryFilters(fevs, filter)
-			}
-			fileSlices = append(fileSlices, fevs)
+			fevs = icalconv.ApplyCategoryFilters(fevs, filter)
+			evs = append(evs, fevs...)
 		}
-		evs = icalconv.MergeEventSlices(fileSlices...)
 	}
 
 	evs = slices.CompactFunc(evs.SortBy(icalconv.ById), func(e1, e2 icalconv.Event) bool {

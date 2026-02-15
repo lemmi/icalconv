@@ -33,9 +33,12 @@ func LoadEventsFromReader(r io.Reader) (Events, error) {
 //
 // The function mirrors the logic that previously lived in `main.go`.
 func ApplyCategoryFilters(evs Events, filter string) Events {
+	if filter == "" {
+		return evs
+	}
 	var limitCategories []string
 
-	for _, catopt := range splitText(filter) {
+	for catopt := range splitText(filter) {
 		if len(catopt) <= 1 {
 			continue
 		}
