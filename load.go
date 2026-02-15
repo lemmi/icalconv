@@ -59,13 +59,3 @@ func ApplyCategoryFilters(evs Events, filter string) Events {
 	}
 	return evs
 }
-
-// mergeEventSlices concatenates a variadic list of Events slices into a single Events slice.
-// It does not perform any deduplication; callers can sort or deduplicate afterwards if needed.
-func MergeEventSlices(slices ...Events) Events {
-	var merged Events
-	for _, s := range slices {
-		merged = append(merged, s...)
-	}
-	return merged
-}

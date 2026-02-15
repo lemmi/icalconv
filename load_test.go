@@ -2,6 +2,7 @@ package icalconv
 
 import (
 	"io"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -63,7 +64,7 @@ func TestApplyCategoryFilters(t *testing.T) {
 func TestMergeEventSlices(t *testing.T) {
 	ev1 := Events{{Summary: "A"}}
 	ev2 := Events{{Summary: "B"}, {Summary: "C"}}
-	merged := MergeEventSlices(ev1, ev2)
+	merged := slices.Concat(ev1, ev2)
 	if len(merged) != 3 {
 		t.Fatalf("expected 3 events after merge, got %d", len(merged))
 	}
@@ -95,7 +96,7 @@ func TestFullWorkflow(t *testing.T) {
 	evs1 = ApplyCategoryFilters(evs1, "=catX") // keep only catX
 	evs2 = ApplyCategoryFilters(evs2, "+catA") // add catA
 
-	merged := MergeEventSlices(evs1, evs2)
+	merged := slices.Concat(evs1, evs2)
 
 	if len(merged) != 2 {
 		t.Fatalf("expected 2 merged events, got %d", len(merged))
