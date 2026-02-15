@@ -1,6 +1,6 @@
 module github.com/lemmi/icalconv
 
-go 1.18
+go 1.25
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
