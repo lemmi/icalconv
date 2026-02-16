@@ -34,7 +34,7 @@ func icsReader(categories []string) io.Reader {
 // Test loading events from an io.Reader.
 func TestLoadEventsFromReader(t *testing.T) {
 	r := icsReader([]string{"catA", "catB"})
-	evs, err := LoadEventsFromReader(r)
+	evs, err := loadEventsFromReader(r)
 	if err != nil {
 		t.Fatalf("loadEventsFromReader failed: %v", err)
 	}
@@ -83,11 +83,11 @@ func TestFullWorkflow(t *testing.T) {
 	// Second file: catY, catZ
 	r2 := icsReader([]string{"catY", "catZ"})
 
-	evs1, err := LoadEventsFromReader(r1)
+	evs1, err := loadEventsFromReader(r1)
 	if err != nil {
 		t.Fatalf("load first reader: %v", err)
 	}
-	evs2, err := LoadEventsFromReader(r2)
+	evs2, err := loadEventsFromReader(r2)
 	if err != nil {
 		t.Fatalf("load second reader: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestFullWorkflow(t *testing.T) {
 // Verify that the start time is parsed correctly by goics.
 func TestEventTimeParsing(t *testing.T) {
 	r := icsReader(nil)
-	evs, err := LoadEventsFromReader(r)
+	evs, err := loadEventsFromReader(r)
 	if err != nil {
 		t.Fatalf("loadEventsFromReader failed: %v", err)
 	}

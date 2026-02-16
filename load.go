@@ -15,11 +15,11 @@ func LoadEventsFromFile(path string) (Events, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return LoadEventsFromReader(f)
+	return loadEventsFromReader(f)
 }
 
 // loadEventsFromReader decodes iCalendar data from any io.Reader and returns the events.
-func LoadEventsFromReader(r io.Reader) (Events, error) {
+func loadEventsFromReader(r io.Reader) (Events, error) {
 	var evs Events
 	return evs, goics.NewDecoder(r).Decode(&evs)
 }
