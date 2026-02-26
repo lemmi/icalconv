@@ -38,5 +38,5 @@ func main() {
 	}
 
 	// Ensure a trailing newline.
-	fmt.Fprintln(os.Stdout)
+	fmt.Fprint(os.Stdout, "\r\n")
 }
