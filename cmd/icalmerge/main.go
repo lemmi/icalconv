@@ -6,11 +6,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"github.com/lemmi/icalconv/merge"
 )
 
 func main() {
+	timezone := flag.String("tz", time.Local.String(), "Timezone for X-WR-TIMEZONE")
 	flag.Parse()
 	args := flag.Args()
 
@@ -31,7 +33,7 @@ func main() {
 	}
 
 	// Merge all calendars and write to stdout.
-	if err := merge.MergeCalendars(readers, os.Stdout); err != nil {
+	if err := merge.MergeCalendars(os.Stdout, *timezone, readers...); err != nil {
 		log.Fatalf("Merge error: %v", err)
 	}
 

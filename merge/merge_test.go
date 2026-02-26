@@ -29,11 +29,11 @@ END:VCALENDAR`
 	}
 
 	var out bytes.Buffer
-	if err := MergeCalendars(readers, &out); err != nil {
+	if err := MergeCalendars(&out, "Europe/Berlin", readers...); err != nil {
 		t.Fatalf("MergeCalendars returned error: %v", err)
 	}
 
-	expected := "BEGIN:VCALENDAR\r\nPRODID:-//icalmerge//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:1\r\nSUMMARY:Event 1\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:2\r\nSUMMARY:Event 2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	expected := "BEGIN:VCALENDAR\r\nPRODID:-//icalmerge//EN\r\nVERSION:2.0\r\nX-WR-TIMEZONE:Europe/Berlin\r\nBEGIN:VEVENT\r\nUID:1\r\nSUMMARY:Event 1\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:2\r\nSUMMARY:Event 2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
 	if out.String() != expected {
 		t.Errorf("Merged output does not match expected.\nGot:\n%s\nExpected:\n%s", out.String(), expected)
@@ -66,11 +66,11 @@ END:VCALENDAR`
 	}
 
 	var out bytes.Buffer
-	if err := MergeCalendars(readers, &out); err != nil {
+	if err := MergeCalendars(&out, "Europe/Berlin", readers...); err != nil {
 		t.Fatalf("MergeCalendars returned error: %v", err)
 	}
 
-	expected := "BEGIN:VCALENDAR\r\nPRODID:-//icalmerge//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:1\r\nSUMMARY:Event 1\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:3\r\nDESCRIPTION:First part\r\n BEGIN:XYZ\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	expected := "BEGIN:VCALENDAR\r\nPRODID:-//icalmerge//EN\r\nVERSION:2.0\r\nX-WR-TIMEZONE:Europe/Berlin\r\nBEGIN:VEVENT\r\nUID:1\r\nSUMMARY:Event 1\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:3\r\nDESCRIPTION:First part\r\n BEGIN:XYZ\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
 	if out.String() != expected {
 		t.Errorf("Merged output does not match expected.\nGot:\n%s\nExpected:\n%s", out.String(), expected)

@@ -13,8 +13,11 @@ import (
 )
 
 // crlfWrite writes a string followed by a CRLF sequence.
-func crlfWrite(w io.Writer, s string) error {
-	_, err := fmt.Fprint(w, s, "\r\n")
+func crlfWrite(err error, w io.Writer, s string) error {
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprint(w, s, "\r\n")
 	return err
 }
 
@@ -22,14 +25,15 @@ func crlfWrite(w io.Writer, s string) error {
 // inner contents of each calendar (everything between the outermost
 // BEGIN:VCALENDAR and END:VCALENDAR), and writes a single merged calendar
 // to the provided writer. The output uses CRLF line endings.
-func MergeCalendars(readers []io.Reader, w io.Writer) error {
-	if err := crlfWrite(w, "BEGIN:VCALENDAR"); err != nil {
-		return err
+func MergeCalendars(w io.Writer, timezone string, readers ...io.Reader) error {
+	var err error
+	err = crlfWrite(err, w, "BEGIN:VCALENDAR")
+	err = crlfWrite(err, w, "PRODID:-//icalmerge//EN")
+	err = crlfWrite(err, w, "VERSION:2.0")
+	if timezone != "" {
+		err = crlfWrite(err, w, "X-WR-TIMEZONE:"+timezone)
 	}
-	if err := crlfWrite(w, "PRODID:-//icalmerge//EN"); err != nil {
-		return err
-	}
-	if err := crlfWrite(w, "VERSION:2.0"); err != nil {
+	if err != nil {
 		return err
 	}
 	for _, r := range readers {
@@ -37,7 +41,7 @@ func MergeCalendars(readers []io.Reader, w io.Writer) error {
 			return err
 		}
 	}
-	return crlfWrite(w, "END:VCALENDAR")
+	return crlfWrite(nil, w, "END:VCALENDAR")
 }
 
 // copyCalendarBody extracts the body of a single iCalendar document (the lines
@@ -74,7 +78,7 @@ func copyCalendarBody(r io.Reader, w io.Writer) error {
 				}
 				// Leaving outer calendar – do not write this line.
 			case depth > 1:
-				if err := crlfWrite(w, line); err != nil {
+				if err := crlfWrite(nil, w, line); err != nil {
 					return err
 				}
 			case depth < 0:
@@ -85,7 +89,7 @@ func copyCalendarBody(r io.Reader, w io.Writer) error {
 
 		// Regular line – write only if we are inside the outer calendar.
 		if depth > 1 {
-			if err := crlfWrite(w, line); err != nil {
+			if err := crlfWrite(nil, w, line); err != nil {
 				return err
 			}
 		}
